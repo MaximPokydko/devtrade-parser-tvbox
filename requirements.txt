@@ -1,0 +1,18 @@
+# --- Пайплайн devtrade_parse ---
+openai
+python-dotenv
+yt-dlp
+openai-whisper
+browser_cookie3
+tqdm
+requests
+numpy
+# PyTorch нужен для Whisper. На сервере без GPU ставьте CPU-сборку:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch
+
+# --- Telegram-бот devtrade_bot ---
+aiogram>=3.4
+SQLAlchemy[asyncio]>=2.0
+asyncpg
+greenlet

@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: devtrade
+      POSTGRES_PASSWORD: devtrade
+      POSTGRES_DB: devtrade
+    ports:
+      # 5432 на этой машине занят другим проектом — наружу отдаём 5433.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

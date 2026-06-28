@@ -1,0 +1,21 @@
+//@version=5
+strategy("Long after lower wick and green close", overlay=true)
+
+bodySize = math.abs(close - open)
+isGreen = close > open
+lowerWick = math.min(open, close) - low
+
+bodyDecreasing = bodySize < bodySize[1] and bodySize[1] < bodySize[2]
+priceDown = close < close[1] and close[1] < close[2]
+
+reversalCandle = isGreen[1] and bodyDecreasing[1] and priceDown[1]
+
+entryCondition = reversalCandle and lowerWick > 0 and isGreen
+
+stopLevel = low[1]
+risk = strategy.position_avg_price - stopLevel
+takeProfit = strategy.position_avg_price + risk * 1.5
+
+if (entryCondition and strategy.position_size == 0)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=stopLevel, limit=takeProfit)

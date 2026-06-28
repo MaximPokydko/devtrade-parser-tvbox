@@ -1,0 +1,49 @@
+//@version=5
+strategy("Price Action Bounce Strategy", overlay=true, margin_long=100, margin_short=100)
+
+var float sup_level = na
+var float res_level = na
+var bool sup_broken = false
+var bool res_broken = false
+var bool in_long = false
+var bool in_short = false
+
+high_level = ta.highest(high, 20)
+low_level = ta.lowest(low, 20)
+
+if not sup_broken and low < low_level
+    sup_level := low_level
+    sup_broken := true
+    res_broken := false
+if not res_broken and high > high_level
+    res_level := high_level
+    res_broken := true
+    sup_broken := false
+
+long_entry = sup_broken and close > sup_level and low <= sup_level and not in_long
+short_entry = res_broken and close < res_level and high >= res_level and not in_short
+
+long_exit = res_broken and in_long
+short_exit = sup_broken and in_short
+
+if long_exit
+    strategy.close("Long")
+    strategy.entry("Short", strategy.short)
+    in_long := false
+    in_short := true
+
+if short_exit
+    strategy.close("Short")
+    strategy.entry("Long", strategy.long)
+    in_short := false
+    in_long := true
+
+if long_entry
+    strategy.entry("Long", strategy.long)
+    in_long := true
+    in_short := false
+
+if short_entry
+    strategy.entry("Short", strategy.short)
+    in_short := true
+    in_long := false
