@@ -2,19 +2,8 @@
 
 import json
 
-from openai import OpenAI
-
 from . import config
-
-_client = None
-
-
-def _get_client() -> OpenAI:
-    global _client
-    if _client is None:
-        _client = OpenAI()
-    return _client
-
+from .openai_client import get_client
 
 PROMPT = """
 Ты — разработчик PineScript.
@@ -42,7 +31,7 @@ def generate_pine(strategy: dict) -> str:
     Возвращает строку с кодом. Очистку/валидацию выполняет validate.validate_pine.
     """
     prompt = PROMPT.format(max_lines=config.PINE_MAX_LINES)
-    response = _get_client().chat.completions.create(
+    response = get_client().chat.completions.create(
         model=config.OPENAI_MODEL,
         messages=[
             {"role": "system", "content": "Ты пишешь только код PineScript."},

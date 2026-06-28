@@ -14,8 +14,8 @@ except ModuleNotFoundError:
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
-# Whisper (локальная транскрибация)
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
+# Транскрибация через OpenAI audio API (вариант tvbox, без локального Whisper).
+OPENAI_TRANSCRIBE_MODEL = os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 
 # yt-dlp cookies.
 #   COOKIES_FILE      — путь к cookies в формате Netscape (для сервера/бота, где нет браузера).

@@ -5,8 +5,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Optional
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, String, Text, event, func
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -34,9 +33,9 @@ class Script(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
     source_url: Mapped[str] = mapped_column(Text)
     source_type: Mapped[str] = mapped_column(String(32))
-    strategy_json: Mapped[dict] = mapped_column(JSONB)
+    strategy_json: Mapped[dict] = mapped_column(JSON)
     pine_code: Mapped[str] = mapped_column(Text)
-    validation_issues: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    validation_issues: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="scripts")
@@ -62,6 +61,16 @@ class Job(Base):
 # Один движок/фабрика сессий на процесс.
 engine = create_async_engine(config.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+# SQLite: бот и воркер — два процесса на один файл БД. WAL + busy_timeout
+# убирают ошибки «database is locked» при одновременном доступе.
+if config.DATABASE_URL.startswith("sqlite"):
+    @event.listens_for(engine.sync_engine, "connect")
+    def _sqlite_pragmas(dbapi_conn, _record):  # noqa: ANN001
+        cur = dbapi_conn.cursor()
+        cur.execute("PRAGMA journal_mode=WAL")
+        cur.execute("PRAGMA busy_timeout=5000")
+        cur.close()
 
 
 async def init_models() -> None:

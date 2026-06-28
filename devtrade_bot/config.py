@@ -11,11 +11,9 @@ except ModuleNotFoundError:
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# Пример: postgresql+asyncpg://user:pass@localhost:5432/devtrade
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://devtrade:devtrade@localhost:5432/devtrade",
-)
+# Вариант tvbox: SQLite-файл (без сервера БД). Пример Postgres:
+#   postgresql+asyncpg://user:pass@localhost:5432/devtrade
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///devtrade.db")
 
 # Период опроса очереди задач воркером, сек.
 WORKER_POLL_INTERVAL = float(os.getenv("WORKER_POLL_INTERVAL", "3"))

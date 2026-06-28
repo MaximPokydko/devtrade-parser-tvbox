@@ -1,18 +1,16 @@
+# Вариант tvbox (ветка tvbox): без torch/whisper/postgres — чистый Python,
+# ставится на armv7l/1 ГБ без компиляции. Транскрибация через OpenAI audio API.
+
 # --- Пайплайн devtrade_parse ---
 openai
 python-dotenv
 yt-dlp
-openai-whisper
-browser_cookie3
-tqdm
 requests
-numpy
-# PyTorch нужен для Whisper. На сервере без GPU ставьте CPU-сборку:
-#   pip install torch --index-url https://download.pytorch.org/whl/cpu
-torch
 
 # --- Telegram-бот devtrade_bot ---
 aiogram>=3.4
 SQLAlchemy[asyncio]>=2.0
-asyncpg
+aiosqlite
 greenlet
+
+# ffmpeg ставится системно: apt install ffmpeg (не через pip)

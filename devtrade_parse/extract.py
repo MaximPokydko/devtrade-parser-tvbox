@@ -2,19 +2,8 @@
 
 import json
 
-from openai import OpenAI
-
 from . import config
-
-_client = None
-
-
-def _get_client() -> OpenAI:
-    global _client
-    if _client is None:
-        _client = OpenAI()
-    return _client
-
+from .openai_client import get_client
 
 PROMPT = """
 Ты — трейдер-аналитик.
@@ -50,7 +39,7 @@ def extract_strategy(text: str) -> dict:
     Возвращает dict вида {"is_strategy": bool, ...}.
     Бросает ValueError, если модель вернула невалидный JSON.
     """
-    response = _get_client().chat.completions.create(
+    response = get_client().chat.completions.create(
         model=config.OPENAI_MODEL,
         messages=[
             {"role": "system", "content": "Ты строгий парсер. Отвечай только JSON."},

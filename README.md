@@ -1,5 +1,9 @@
 # devtrade_parse + devtrade_bot
 
+> ⚙️ Это ветка **`tvbox`** — облегчённая сборка для слабого ARM-хоста (без Whisper/torch,
+> транскрибация через OpenAI API, БД на SQLite, без Docker). Инструкция по запуску на коробке —
+> в [README-tvbox.md](README-tvbox.md). Документ ниже описывает общую архитектуру.
+
 **Превращает видео про трейдинг (YouTube / Instagram Reels) в торговые идеи и код на PineScript.**
 
 Проект состоит из двух частей:

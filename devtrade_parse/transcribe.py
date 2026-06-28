@@ -1,8 +1,9 @@
-"""Видео → текст: скачивание аудио (yt-dlp + ffmpeg) и транскрибация (Whisper).
+"""Видео → текст: скачивание аудио (yt-dlp + ffmpeg) и транскрибация через OpenAI.
 
-Объединяет логику бывших youtube_transcribe.py / insta_transcribe.py:
-источник определяется по домену ссылки, cookies берутся из файла (сервер/бот)
-или из браузера (локальный CLI) согласно настройкам в config.
+Вариант tvbox: вся ML-нагрузка уходит в OpenAI audio API (gpt-4o-mini-transcribe),
+локального Whisper/torch нет — коробка только скачивает аудио и шлёт его в облако.
+Источник определяется по домену ссылки, cookies берутся из файла (на коробке нет
+браузера) или из браузера (локальная разработка) согласно настройкам в config.
 """
 
 import os
@@ -11,10 +12,10 @@ import tempfile
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-import whisper
 import yt_dlp
 
 from . import config
+from .openai_client import get_client
 
 
 def _find_deno() -> str | None:
@@ -26,17 +27,6 @@ def _find_deno() -> str | None:
         return found
     default = os.path.expanduser("~/.deno/bin/deno")
     return default if os.path.exists(default) else None
-
-# Whisper-модель тяжёлая — грузим один раз и переиспользуем (важно для воркера).
-_model = None
-
-
-def _get_model():
-    global _model
-    if _model is None:
-        print(f"Загружаем модель Whisper ({config.WHISPER_MODEL})...")
-        _model = whisper.load_model(config.WHISPER_MODEL)
-    return _model
 
 
 def detect_source(url: str) -> str:
@@ -112,9 +102,13 @@ def transcribe_url(url: str) -> Transcript:
         if not os.path.exists(audio_file):
             raise FileNotFoundError(f"Аудио не найдено после скачивания: {audio_file}")
 
-        print("🎧 Транскрибируем аудио...")
-        result = _get_model().transcribe(audio_file)
-        text = (result.get("text") or "").strip()
+        print("🎧 Транскрибируем аудио через OpenAI...")
+        with open(audio_file, "rb") as f:
+            result = get_client().audio.transcriptions.create(
+                model=config.OPENAI_TRANSCRIBE_MODEL,
+                file=f,
+            )
+        text = (result.text or "").strip()
 
     title = (
         info.get("title")
