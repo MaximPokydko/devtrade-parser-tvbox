@@ -8,6 +8,7 @@ import re
 from urllib.parse import urlparse
 
 from aiogram import Bot, Dispatcher, F, Router
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import Command, CommandStart
 from aiogram.types import BufferedInputFile, Message
 from sqlalchemy import select
@@ -116,9 +117,20 @@ async def _send_script(bot: Bot, chat_id: int, script: Script) -> None:
     await bot.send_document(chat_id, doc, caption=caption[:1024])
 
 
+def make_bot() -> Bot:
+    """Bot с увеличенным таймаутом сессии.
+
+    На медленных/слабых каналах (tvbox) дефолтного таймаута не хватает даже на
+    TLS-хендшейк к api.telegram.org → стартовый getMe падает по таймауту.
+    BOT_REQUEST_TIMEOUT (сек) задаётся в .env.
+    """
+    session = AiohttpSession(timeout=config.BOT_REQUEST_TIMEOUT)
+    return Bot(token=config.require_token(), session=session)
+
+
 async def main() -> None:
     await init_models()
-    bot = Bot(token=config.require_token())
+    bot = make_bot()
     dp = Dispatcher()
     dp.include_router(router)
     print("🤖 devtrade_bot запущен (polling)")

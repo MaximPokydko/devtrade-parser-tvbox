@@ -18,6 +18,9 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///devtrade.db")
 # Период опроса очереди задач воркером, сек.
 WORKER_POLL_INTERVAL = float(os.getenv("WORKER_POLL_INTERVAL", "3"))
 
+# Таймаут HTTP-сессии к Telegram, сек. На медленных каналах (tvbox) дефолта мало.
+BOT_REQUEST_TIMEOUT = float(os.getenv("BOT_REQUEST_TIMEOUT", "120"))
+
 
 def require_token() -> str:
     if not TELEGRAM_BOT_TOKEN:

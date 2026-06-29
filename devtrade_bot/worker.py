@@ -1,8 +1,8 @@
 """Фоновый воркер: разбирает очередь Job и прогоняет пайплайн devtrade_parse.
 
-Запускается отдельным процессом (`python -m devtrade_bot.worker`), держит модель
-Whisper в памяти и обрабатывает задачи последовательно (concurrency = 1, т.к. один
-Whisper на CPU). Результат пишет в БД и отправляет пользователю готовый .pine.
+Запускается отдельным процессом (`python -m devtrade_bot.worker`) и обрабатывает
+задачи последовательно (concurrency = 1). Транскрибация идёт через OpenAI audio API,
+поэтому процесс лёгкий. Результат пишет в БД и отправляет пользователю готовый .pine.
 """
 
 import asyncio
@@ -13,7 +13,7 @@ from sqlalchemy import select
 from devtrade_parse import process_url
 
 from . import config
-from .bot import _send_script
+from .bot import _send_script, make_bot
 from .db import Job, Script, SessionLocal, init_models
 
 
@@ -87,7 +87,7 @@ async def _process_job(bot: Bot, job_id: int) -> None:
 
 async def main() -> None:
     await init_models()
-    bot = Bot(token=config.require_token())
+    bot = make_bot()
     print("⚙️  devtrade_bot worker запущен")
     try:
         while True:
