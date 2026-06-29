@@ -5,6 +5,7 @@
 """
 
 import re
+import socket
 from urllib.parse import urlparse
 
 from aiogram import Bot, Dispatcher, F, Router
@@ -118,13 +119,16 @@ async def _send_script(bot: Bot, chat_id: int, script: Script) -> None:
 
 
 def make_bot() -> Bot:
-    """Bot с увеличенным таймаутом сессии.
+    """Bot с IPv4-only сессией и увеличенным таймаутом.
 
-    На медленных/слабых каналах (tvbox) дефолтного таймаута не хватает даже на
-    TLS-хендшейк к api.telegram.org → стартовый getMe падает по таймауту.
+    На tvbox кривой IPv6: aiohttp (happy-eyeballs) всё равно пытается IPv6 и виснет,
+    даже если в системе выставлен приоритет IPv4. Форсим `family=AF_INET` прямо в
+    коннекторе — это эквивалент `curl -4`, который на коробке работает.
     BOT_REQUEST_TIMEOUT (сек) задаётся в .env.
     """
     session = AiohttpSession(timeout=config.BOT_REQUEST_TIMEOUT)
+    if config.FORCE_IPV4:
+        session._connector_init["family"] = socket.AF_INET
     return Bot(token=config.require_token(), session=session)
 
 

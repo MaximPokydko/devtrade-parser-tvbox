@@ -70,6 +70,9 @@ def _ydl_opts(tmpdir: str) -> dict:
         "remote_components": ["ejs:github"],
         "extractor_args": {"youtube": {"player_client": ["web"]}},
     }
+    # Форс IPv4 (кривой IPv6 на tvbox): source_address=0.0.0.0 биндит на IPv4.
+    if config.FORCE_IPV4:
+        opts["source_address"] = "0.0.0.0"
     # Cookies: файл предпочтительнее (работает на сервере без браузера), но только
     # если он реально существует — иначе откатываемся на cookies из браузера.
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):

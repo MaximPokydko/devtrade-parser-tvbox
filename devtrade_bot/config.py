@@ -21,6 +21,9 @@ WORKER_POLL_INTERVAL = float(os.getenv("WORKER_POLL_INTERVAL", "3"))
 # Таймаут HTTP-сессии к Telegram, сек. На медленных каналах (tvbox) дефолта мало.
 BOT_REQUEST_TIMEOUT = float(os.getenv("BOT_REQUEST_TIMEOUT", "120"))
 
+# Форсить IPv4 для запросов к Telegram (обход кривого IPv6 на tvbox). 1/0.
+FORCE_IPV4 = os.getenv("FORCE_IPV4", "1") not in ("0", "false", "False", "")
+
 
 def require_token() -> str:
     if not TELEGRAM_BOT_TOKEN:

@@ -29,3 +29,6 @@ DENO_PATH = os.getenv("DENO_PATH")
 
 # Лимит длины генерируемого PineScript (строк) — передаётся в промпт и в валидатор.
 PINE_MAX_LINES = int(os.getenv("PINE_MAX_LINES", "120"))
+
+# Форсить IPv4 в yt-dlp и OpenAI-клиенте (обход кривого IPv6 на tvbox). 1/0.
+FORCE_IPV4 = os.getenv("FORCE_IPV4", "1") not in ("0", "false", "False", "")
