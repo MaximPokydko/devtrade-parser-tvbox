@@ -1,4 +1,4 @@
-"""Оркестратор полного пайплайна: ссылка → текст → DSL → PineScript → валидация."""
+"""Full pipeline orchestration: link -> text -> DSL -> PineScript -> validation."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -17,16 +17,16 @@ class PipelineResult:
     text: str
     strategy: dict
     is_strategy: bool
-    pine: Optional[str]                 # None, если стратегия не найдена
+    pine: Optional[str]                 # None if no strategy was found
     validation: Optional[ValidationResult]
 
 
 def process_url(url: str) -> PipelineResult:
-    """Полный прогон одной ссылки. Используется ботом-воркером.
+    """Run the full pipeline for one link. Used by the bot worker.
 
-    Бросает исключения транскрибации/извлечения наверх — воркер сохранит их в Job.error.
-    Если стратегия в тексте не найдена, возвращает результат с is_strategy=False
-    и pine=None (это не ошибка).
+    Propagates transcription/extraction exceptions to the caller (worker stores them
+    in Job.error). If no strategy is found, returns is_strategy=False and pine=None
+    (not an error).
     """
     transcript = transcribe_url(url)
     strategy = extract_strategy(transcript.text)

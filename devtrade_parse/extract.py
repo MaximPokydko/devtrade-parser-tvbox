@@ -1,4 +1,4 @@
-"""Текст → DSL-стратегия (JSON) через OpenAI."""
+"""Text -> strategy DSL (JSON) via OpenAI."""
 
 import json
 
@@ -45,10 +45,10 @@ PROMPT = """
 
 
 def extract_strategy(text: str) -> dict:
-    """Извлекает структуру стратегии из текста.
+    """Extract a strategy structure from text.
 
-    Возвращает dict вида {"is_strategy": bool, ...}.
-    Бросает ValueError, если модель вернула невалидный JSON.
+    Returns a dict like {"is_strategy": bool, ...}.
+    Raises ValueError if the model returns invalid JSON.
     """
     response = _get_client().chat.completions.create(
         model=config.OPENAI_MODEL,
@@ -63,4 +63,4 @@ def extract_strategy(text: str) -> dict:
     try:
         return json.loads(content)
     except (json.JSONDecodeError, TypeError) as exc:
-        raise ValueError(f"LLM вернул невалидный JSON: {exc}") from exc
+        raise ValueError(f"LLM returned invalid JSON: {exc}") from exc

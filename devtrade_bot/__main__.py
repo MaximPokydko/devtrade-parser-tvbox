@@ -1,4 +1,4 @@
-"""Запуск бота: python -m devtrade_bot"""
+"""Run the bot: python -m devtrade_bot"""
 
 import asyncio
 

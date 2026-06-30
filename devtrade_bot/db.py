@@ -1,11 +1,11 @@
-"""Слой БД: модели User / Script / Job (PostgreSQL, SQLAlchemy async)."""
+"""Database layer: User / Script / Job models (PostgreSQL, async SQLAlchemy)."""
 
 from __future__ import annotations
 
 import datetime as dt
 from typing import Optional
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -32,6 +32,7 @@ class Script(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
+    name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     source_url: Mapped[str] = mapped_column(Text)
     source_type: Mapped[str] = mapped_column(String(32))
     strategy_json: Mapped[dict] = mapped_column(JSONB)
@@ -43,7 +44,7 @@ class Script(Base):
 
 
 class Job(Base):
-    """Очередь задач: бот вставляет pending, воркер забирает и обрабатывает."""
+    """Task queue: bot inserts pending jobs, worker claims and processes them."""
 
     __tablename__ = "jobs"
 
@@ -59,12 +60,12 @@ class Job(Base):
     )
 
 
-# Один движок/фабрика сессий на процесс.
 engine = create_async_engine(config.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def init_models() -> None:
-    """Создаёт таблицы, если их нет (MVP вместо миграций Alembic)."""
+    """Create tables if missing; apply additive column migrations (no Alembic)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("ALTER TABLE scripts ADD COLUMN IF NOT EXISTS name VARCHAR(255)"))

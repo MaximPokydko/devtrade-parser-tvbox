@@ -6,10 +6,64 @@ services:
       POSTGRES_PASSWORD: devtrade
       POSTGRES_DB: devtrade
     ports:
-      # 5432 на этой машине занят другим проектом — наружу отдаём 5433.
+      # 5432 на хосте занят другим проектом — наружу отдаём 5433.
+      # Внутри docker-сети сервисы ходят на db:5432 (см. DATABASE_URL ниже).
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devtrade -d devtrade"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build: .
+    command: python -m devtrade_bot
+    env_file: .env
+    environment:
+      # Переопределяем DATABASE_URL из .env: внутри сети — Postgres на db:5432.
+      DATABASE_URL: postgresql+asyncpg://devtrade:devtrade@db:5432/devtrade
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: python -m devtrade_bot.worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://devtrade:devtrade@db:5432/devtrade
+    volumes:
+      # cookies для yt-dlp (отдельные файлы youtube.txt / instagram.txt) и кэш Whisper.
+      # Файлы обновляются на хосте (scripts/refresh_cookies.py), воркер читает их ro.
+      - ./cookies:/app/cookies:ro
+      - whisper-cache:/cache
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    # Горизонтальное масштабирование. Очередь Job спроектирована под конкурентных
+    # воркеров (SELECT ... FOR UPDATE SKIP LOCKED), поэтому несколько воркеров
+    # безопасно разбирают задачи параллельно.
+    #
+    # Здесь replicas=1: транскрибация — локальный Whisper на CPU, каждый воркер
+    # держит свою копию модели (~2 ГБ RAM) и конкурирует за ядра. На 15 ГБ RAM
+    # три воркера уходили в своп. Поднимать replicas есть смысл только при заметно
+    # большем RAM/числе ядер или если вынести транскрибацию на GPU/внешний API.
+    deploy:
+      replicas: 1
 
 volumes:
   pgdata:
+  whisper-cache:
+
+networks:
+  # Под VPN эффективный MTU меньше дефолтных 1500 → крупные TLS-пакеты режутся и
+  # соединение рвётся (SSL: UNEXPECTED_EOF). Снижаем MTU docker-сети под туннель.
+  # Если 1400 не помогло — пробуй 1280 (минимум IPv6, самый безопасный).
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1400"

@@ -1,4 +1,4 @@
-# --- Пайплайн devtrade_parse ---
+# --- devtrade_parse ---
 openai
 python-dotenv
 yt-dlp
@@ -11,7 +11,7 @@ numpy
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
 torch
 
-# --- Telegram-бот devtrade_bot ---
+# --- devtrade_bot ---
 aiogram>=3.4
 SQLAlchemy[asyncio]>=2.0
 asyncpg

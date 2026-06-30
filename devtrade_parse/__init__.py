@@ -1,12 +1,12 @@
-"""devtrade_parse — пайплайн «видео про трейдинг → торговая идея → PineScript».
+"""devtrade_parse — pipeline "trading video -> trade idea -> PineScript".
 
-Публичный API (импортируется лениво, чтобы `import devtrade_parse` не тянул
-тяжёлые зависимости вроде whisper/torch без необходимости):
-    process_url(url)          — полный пайплайн для одной ссылки (используется ботом)
-    transcribe_url(url)       — видео → текст
-    extract_strategy(text)    — текст → DSL-стратегия (JSON)
-    generate_pine(strategy)   — DSL → PineScript
-    validate_pine(code)       — статическая проверка/починка PineScript
+Public API is imported lazily so that `import devtrade_parse` does not pull heavy
+dependencies (whisper/torch) unless they are actually used:
+    process_url(url)          — full pipeline for one link (used by the bot)
+    transcribe_url(url)       — video -> text
+    extract_strategy(text)    — text -> strategy DSL (JSON)
+    generate_pine(strategy)   — DSL -> PineScript
+    validate_pine(code)       — static check/fix of PineScript
 """
 
 import importlib
@@ -22,7 +22,7 @@ __all__ = [
     "ValidationIssue",
 ]
 
-# имя атрибута -> (модуль, имя в модуле)
+# attribute name -> (module, name in module)
 _LAZY = {
     "process_url": ("pipeline", "process_url"),
     "PipelineResult": ("pipeline", "PipelineResult"),

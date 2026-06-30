@@ -1,11 +1,11 @@
-"""Батч-режим CLI (как раньше: обмен через папки texts/ → ideas/ → pines/).
+"""Batch CLI mode (folder exchange: texts/ -> ideas/ -> pines/).
 
-Примеры:
-    python -m devtrade_parse transcribe     # links.txt/insta_links.txt → texts/
-    python -m devtrade_parse extract        # texts/*.txt → ideas/*.json
-    python -m devtrade_parse generate       # ideas/*.json → pines/*.pine (с валидацией)
-    python -m devtrade_parse all            # extract + generate (по умолчанию)
-    python -m devtrade_parse url <ссылка>   # полный пайплайн для одной ссылки в stdout
+Examples:
+    python -m devtrade_parse transcribe     # youtube_links.txt/insta_links.txt -> texts/
+    python -m devtrade_parse extract        # texts/*.txt -> ideas/*.json
+    python -m devtrade_parse generate       # ideas/*.json -> pines/*.pine (validated)
+    python -m devtrade_parse all            # extract + generate (default)
+    python -m devtrade_parse url <link>     # full pipeline for one link to stdout
 """
 
 import argparse
@@ -33,21 +33,21 @@ def _read_links(path: str) -> list[str]:
 
 def cmd_transcribe(_args) -> None:
     os.makedirs(TEXTS_DIR, exist_ok=True)
-    urls = _read_links("links.txt") + _read_links("insta_links.txt")
+    urls = _read_links("youtube_links.txt") + _read_links("insta_links.txt")
     if not urls:
-        print("❌ Нет ссылок: заполните links.txt и/или insta_links.txt")
+        print("No links: fill youtube_links.txt and/or insta_links.txt")
         return
     for idx, url in enumerate(urls, 1):
         print(f"\n[{idx}/{len(urls)}] {url}")
         try:
             t = transcribe_url(url)
-        except Exception as e:  # noqa: BLE001 — батч продолжает работу
-            print(f"❌ Ошибка: {e}")
+        except Exception as e:  # noqa: BLE001 — keep the batch going
+            print(f"Error: {e}")
             continue
         out = os.path.join(TEXTS_DIR, f"{safe_filename(t.title)}.txt")
         with open(out, "w", encoding="utf-8") as f:
             f.write(t.text)
-        print(f"✅ {out}")
+        print(f"Saved: {out}")
 
 
 def cmd_extract(_args) -> None:
@@ -61,7 +61,7 @@ def cmd_extract(_args) -> None:
         try:
             data = extract_strategy(text)
         except ValueError as e:
-            print(f"⚠️ {e} — пропуск")
+            print(f"Skip: {e}")
             continue
         out = os.path.join(IDEAS_DIR, name.replace(".txt", ".json"))
         with open(out, "w", encoding="utf-8") as f:
@@ -97,22 +97,22 @@ def cmd_all(args) -> None:
 def cmd_url(args) -> None:
     res = process_url(args.url)
     if not res.is_strategy:
-        print("В видео не обнаружена торговая стратегия.")
+        print("No trading strategy found in the video.")
         return
     print(res.pine)
     if res.validation and res.validation.issues:
-        print("\n--- Замечания валидатора ---")
+        print("\n--- Validator notes ---")
         print(res.validation.format_issues())
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="devtrade_parse", description="Видео → PineScript пайплайн")
+    parser = argparse.ArgumentParser(prog="devtrade_parse", description="Video -> PineScript pipeline")
     sub = parser.add_subparsers(dest="cmd")
-    sub.add_parser("transcribe", help="ссылки → texts/")
-    sub.add_parser("extract", help="texts/ → ideas/")
-    sub.add_parser("generate", help="ideas/ → pines/")
-    sub.add_parser("all", help="extract + generate (по умолчанию)")
-    p_url = sub.add_parser("url", help="полный пайплайн для одной ссылки")
+    sub.add_parser("transcribe", help="links -> texts/")
+    sub.add_parser("extract", help="texts/ -> ideas/")
+    sub.add_parser("generate", help="ideas/ -> pines/")
+    sub.add_parser("all", help="extract + generate (default)")
+    p_url = sub.add_parser("url", help="full pipeline for one link")
     p_url.add_argument("url")
 
     args = parser.parse_args(argv)

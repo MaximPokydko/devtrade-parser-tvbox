@@ -1,8 +1,7 @@
-"""Видео → текст: скачивание аудио (yt-dlp + ffmpeg) и транскрибация (Whisper).
+"""Video -> text: download audio (yt-dlp + ffmpeg) and transcribe it (Whisper).
 
-Объединяет логику бывших youtube_transcribe.py / insta_transcribe.py:
-источник определяется по домену ссылки, cookies берутся из файла (сервер/бот)
-или из браузера (локальный CLI) согласно настройкам в config.
+Source is detected from the link's domain; cookies come from a per-platform file
+(server/bot) or from the browser (local CLI) per the settings in config.
 """
 
 import os
@@ -18,7 +17,6 @@ from . import config
 
 
 def _find_deno() -> str | None:
-    """Ищет бинарь deno: DENO_PATH → PATH → стандартный ~/.deno/bin/deno."""
     if config.DENO_PATH and os.path.exists(config.DENO_PATH):
         return config.DENO_PATH
     found = shutil.which("deno")
@@ -27,20 +25,20 @@ def _find_deno() -> str | None:
     default = os.path.expanduser("~/.deno/bin/deno")
     return default if os.path.exists(default) else None
 
-# Whisper-модель тяжёлая — грузим один раз и переиспользуем (важно для воркера).
+
+# Heavy model: load once and reuse (matters for the long-lived worker).
 _model = None
 
 
 def _get_model():
     global _model
     if _model is None:
-        print(f"Загружаем модель Whisper ({config.WHISPER_MODEL})...")
+        print(f"Loading Whisper model ({config.WHISPER_MODEL})...")
         _model = whisper.load_model(config.WHISPER_MODEL)
     return _model
 
 
 def detect_source(url: str) -> str:
-    """Возвращает 'youtube' | 'instagram' | 'other' по домену ссылки."""
     host = (urlparse(url).hostname or "").lower()
     if "youtube" in host or "youtu.be" in host:
         return "youtube"
@@ -50,7 +48,6 @@ def detect_source(url: str) -> str:
 
 
 def _js_runtimes() -> dict:
-    """Список JS-движков для yt-dlp. deno предпочтительнее, node — запасной."""
     runtimes: dict = {}
     deno = _find_deno()
     if deno:
@@ -60,9 +57,9 @@ def _js_runtimes() -> dict:
     return runtimes
 
 
-def _ydl_opts(tmpdir: str) -> dict:
+def _ydl_opts(tmpdir: str, source: str) -> dict:
     opts = {
-        "format": "bestaudio*",
+        "format": "bestaudio/best",
         "quiet": True,
         "noplaylist": True,
         "retries": 10,
@@ -73,17 +70,18 @@ def _ydl_opts(tmpdir: str) -> dict:
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
         }],
-        # YouTube требует JS-движок для решения «n challenge» (иначе доступны только
-        # картинки-превью). deno — основной движок yt-dlp; node как запасной.
-        # Плюс подтягиваем EJS-солвер.
+        # YouTube needs a JS runtime for the "n challenge"; deno primary, node fallback.
         "js_runtimes": _js_runtimes(),
         "remote_components": ["ejs:github"],
         "extractor_args": {"youtube": {"player_client": ["web"]}},
     }
-    # Cookies: файл предпочтительнее (работает на сервере без браузера), но только
-    # если он реально существует — иначе откатываемся на cookies из браузера.
-    if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
-        opts["cookiefile"] = config.COOKIES_FILE
+    cookie_file = config.cookies_file_for(source)
+    if cookie_file and os.path.exists(cookie_file):
+        # yt-dlp writes the cookie jar back to the file; the source is mounted
+        # read-only and shared, so give it a writable copy in tmpdir.
+        writable = os.path.join(tmpdir, "cookies.txt")
+        shutil.copyfile(cookie_file, writable)
+        opts["cookiefile"] = writable
     elif config.COOKIES_FROM_BROWSER:
         opts["cookiesfrombrowser"] = (config.COOKIES_FROM_BROWSER,)
     return opts
@@ -97,22 +95,21 @@ class Transcript:
 
 
 def transcribe_url(url: str) -> Transcript:
-    """Скачивает аудио по ссылке и возвращает транскрибацию.
+    """Download audio for a link and return its transcription.
 
-    Бросает исключение при ошибке скачивания/доступа — вызывающий код решает,
-    как её обработать (бот сохранит её в Job.error).
+    Raises on download/access errors; the caller decides how to handle them.
     """
     source = detect_source(url)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        with yt_dlp.YoutubeDL(_ydl_opts(tmpdir)) as ydl:
+        with yt_dlp.YoutubeDL(_ydl_opts(tmpdir, source)) as ydl:
             info = ydl.extract_info(url, download=True)
 
         audio_file = os.path.join(tmpdir, "audio.mp3")
         if not os.path.exists(audio_file):
-            raise FileNotFoundError(f"Аудио не найдено после скачивания: {audio_file}")
+            raise FileNotFoundError(f"Audio not found after download: {audio_file}")
 
-        print("🎧 Транскрибируем аудио...")
+        print("Transcribing audio...")
         result = _get_model().transcribe(audio_file)
         text = (result.get("text") or "").strip()
 
@@ -126,6 +123,5 @@ def transcribe_url(url: str) -> Transcript:
 
 
 def safe_filename(name: str) -> str:
-    """Очищает строку для использования в имени файла."""
     safe = "".join(c for c in name if c.isalnum() or c in (" ", "_", "-")).strip()
     return safe[:120] if safe else "video"

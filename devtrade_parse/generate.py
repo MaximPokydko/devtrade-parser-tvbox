@@ -1,4 +1,4 @@
-"""DSL-стратегия → PineScript через OpenAI."""
+"""Strategy DSL -> PineScript via OpenAI."""
 
 import json
 
@@ -37,9 +37,9 @@ PROMPT = """
 
 
 def generate_pine(strategy: dict) -> str:
-    """Генерирует PineScript-код по DSL-стратегии (сырой ответ модели).
+    """Generate raw PineScript from a strategy DSL.
 
-    Возвращает строку с кодом. Очистку/валидацию выполняет validate.validate_pine.
+    Returns the model's raw output; cleanup/validation is done by validate.validate_pine.
     """
     prompt = PROMPT.format(max_lines=config.PINE_MAX_LINES)
     response = _get_client().chat.completions.create(

@@ -1,4 +1,4 @@
-"""Настройки модуля devtrade_parse (читаются из окружения / .env)."""
+"""devtrade_parse settings (from environment / .env)."""
 
 import os
 
@@ -7,25 +7,31 @@ try:
 
     load_dotenv()
 except ModuleNotFoundError:
-    # python-dotenv опционален: переменные можно задать и через окружение.
     pass
 
-# OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
-# Whisper (локальная транскрибация)
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
 
-# yt-dlp cookies.
-#   COOKIES_FILE      — путь к cookies в формате Netscape (для сервера/бота, где нет браузера).
-#   COOKIES_FROM_BROWSER — имя браузера для cookiesfrombrowser (для локального CLI), напр. "firefox".
-COOKIES_FILE = os.getenv("COOKIES_FILE")
+# Per-platform cookie files (Netscape format), refreshed on the host and mounted
+# read-only into the worker (no browser/keyring inside the container).
+YOUTUBE_COOKIES_FILE = os.getenv("YOUTUBE_COOKIES_FILE", "cookies/youtube.txt")
+INSTAGRAM_COOKIES_FILE = os.getenv("INSTAGRAM_COOKIES_FILE", "cookies/instagram.txt")
+
+# Local-CLI fallback: browser name for yt-dlp cookiesfrombrowser. Not used in Docker.
 COOKIES_FROM_BROWSER = os.getenv("COOKIES_FROM_BROWSER")
 
-# Путь к JS-движку deno (нужен yt-dlp для решения YouTube «n challenge»).
-# Если не задан — ищем в PATH и в стандартном ~/.deno/bin/deno.
+# deno path for yt-dlp (YouTube n-challenge); falls back to PATH / ~/.deno/bin/deno.
 DENO_PATH = os.getenv("DENO_PATH")
 
-# Лимит длины генерируемого PineScript (строк) — передаётся в промпт и в валидатор.
+# Max generated PineScript length (lines), passed to the prompt and the validator.
 PINE_MAX_LINES = int(os.getenv("PINE_MAX_LINES", "120"))
+
+
+def cookies_file_for(source: str) -> str | None:
+    """Cookie file path for a source ('youtube' / 'instagram'), or None."""
+    return {
+        "youtube": YOUTUBE_COOKIES_FILE,
+        "instagram": INSTAGRAM_COOKIES_FILE,
+    }.get(source)

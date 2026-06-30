@@ -1,8 +1,8 @@
-"""Фоновый воркер: разбирает очередь Job и прогоняет пайплайн devtrade_parse.
+"""Background worker: drains the Job queue and runs the devtrade_parse pipeline.
 
-Запускается отдельным процессом (`python -m devtrade_bot.worker`), держит модель
-Whisper в памяти и обрабатывает задачи последовательно (concurrency = 1, т.к. один
-Whisper на CPU). Результат пишет в БД и отправляет пользователю готовый .pine.
+Runs as a separate process (`python -m devtrade_bot.worker`), keeps the Whisper
+model in memory and processes jobs sequentially. Writes the result to the DB and
+sends the .pine file to the user.
 """
 
 import asyncio
@@ -18,7 +18,7 @@ from .db import Job, Script, SessionLocal, init_models
 
 
 async def _claim_job(session) -> Job | None:
-    """Атомарно берёт одну pending-задачу и помечает её processing."""
+    """Atomically take one pending job and mark it processing."""
     job = (
         await session.execute(
             select(Job)
@@ -40,15 +40,15 @@ async def _process_job(bot: Bot, job_id: int) -> None:
         url, user_id = job.url, job.user_id
 
     try:
-        # process_url блокирующий (whisper) — уводим в поток, чтобы не вешать event loop.
+        # process_url is blocking (whisper) — run it off the event loop.
         result = await asyncio.to_thread(process_url, url)
-    except Exception as exc:  # noqa: BLE001 — любая ошибка пайплайна не должна ронять воркер
+    except Exception as exc:  # noqa: BLE001 — a pipeline error must not crash the worker
         async with SessionLocal() as session:
             job = await session.get(Job, job_id)
             job.status = "error"
             job.error = str(exc)[:2000]
             await session.commit()
-        await bot.send_message(user_id, f"⛔ Не получилось обработать видео:\n{exc}")
+        await bot.send_message(user_id, f"⛔️ Не получилось обработать видео:\n{exc}")
         return
 
     if not result.is_strategy:
@@ -85,7 +85,7 @@ async def _process_job(bot: Bot, job_id: int) -> None:
 async def main() -> None:
     await init_models()
     bot = Bot(token=config.require_token())
-    print("⚙️  devtrade_bot worker запущен")
+    print("devtrade_bot worker started")
     try:
         while True:
             async with SessionLocal() as session:

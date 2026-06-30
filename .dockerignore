@@ -1,0 +1,26 @@
+.git
+.gitignore
+.claude
+.idea
+.vscode
+
+venv
+.venv
+__pycache__
+*.py[cod]
+*.egg-info
+
+# Секреты прокидываются через env_file/volume, в образ не кладём
+.env
+cookies.txt
+
+# Локальные артефакты и БД
+texts
+ideas
+pines
+*.db
+
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore
